@@ -1,0 +1,16 @@
+name: Package Docker Image
+on: workflow_dispatch
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull and Save Image
+        run: |
+          docker pull releases-docker.jfrog.io/jfrog/artifactory-cpp-ce:7.146.15
+          docker save -o artifactory-cpp-ce.tar releases-docker.jfrog.io/jfrog/artifactory-cpp-ce:7.146.15
+      - name: Upload Tar as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifactory-cpp-ce
+          path: artifactory-cpp-ce.tar
+
