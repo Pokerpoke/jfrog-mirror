@@ -1,16 +1,29 @@
-name: Package Docker Image
-on: workflow_dispatch
+name: Package Docker Image & Release
+
+on:
+  workflow_dispatch:    # 保留手动触发
+
+permissions:
+  contents: write       # 必须加，否则无法创建Release
+
 jobs:
   package:
     runs-on: ubuntu-latest
     steps:
-      - name: Pull and Save Image
+      - name: Pull Docker Image
         run: |
           docker pull releases-docker.jfrog.io/jfrog/artifactory-cpp-ce:7.146.15
           docker save -o artifactory-cpp-ce.tar releases-docker.jfrog.io/jfrog/artifactory-cpp-ce:7.146.15
-      - name: Upload Tar as Artifact
-        uses: actions/upload-artifact@v4
+
+      # 自动创建 GitHub Release 并上传 tar 附件
+      - name: Create Release & Upload Tar
+        uses: softprops/action-gh-release@v2
         with:
-          name: artifactory-cpp-ce
-          path: artifactory-cpp-ce.tar
+          tag_name: artifactory-cpp-ce-7.146.15  # Release标签名
+          name: Artifactory CPP CE 7.146.15     # Release标题
+          files: artifactory-cpp-ce.tar          # 上传的附件
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
