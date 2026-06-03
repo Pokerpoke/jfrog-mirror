@@ -1,27 +1,34 @@
-name: Package Docker Image & Release
-
+name: Package Docker Image & Release (Split)
 on:
-  workflow_dispatch:    # 保留手动触发
+  workflow_dispatch:
 
 permissions:
-  contents: write       # 必须加，否则无法创建Release
+  contents: write
 
 jobs:
   package:
     runs-on: ubuntu-latest
     steps:
-      - name: Pull Docker Image
+      - name: Pull & Save Docker Image
         run: |
           docker pull releases-docker.jfrog.io/jfrog/artifactory-cpp-ce:7.146.15
           docker save -o artifactory-cpp-ce.tar releases-docker.jfrog.io/jfrog/artifactory-cpp-ce:7.146.15
 
-      # 自动创建 GitHub Release 并上传 tar 附件
-      - name: Create Release & Upload Tar
+      # 1. 先压缩（可选，进一步减小体积）
+      - name: Compress Tar to GZ
+        run: gzip -9 artifactory-cpp-ce.tar
+
+      # 2. 分卷：每个卷 1.8GB（留余量，避免刚好卡线）
+      - name: Split into 1.8GB parts
+        run: split -b 1800M artifactory-cpp-ce.tar.gz artifactory-cpp-ce-7.146.15.tar.gz.part-
+
+      # 3. 上传所有分卷到 Release
+      - name: Create Release & Upload All Parts
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: artifactory-cpp-ce-7.146.15  # Release标签名
-          name: Artifactory CPP CE 7.146.15     # Release标题
-          files: artifactory-cpp-ce.tar          # 上传的附件
+          tag_name: artifactory-cpp-ce-7.146.15
+          name: Artifactory CPP CE 7.146.15 (Split)
+          files: artifactory-cpp-ce-7.146.15.tar.gz.part-*
           draft: false
           prerelease: false
         env:
